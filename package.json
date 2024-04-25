@@ -1,0 +1,19 @@
+{
+  "name": "validator-registry",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@chainsafe/bls-keystore": "^3.0.1",
+    "@truffle/hdwallet-provider": "^2.1.15",
+    "bls-signatures": "^2.0.2",
+    "json-rpc-2.0": "^1.7.0",
+    "web3": "^4.7.0"
+  }
+}
