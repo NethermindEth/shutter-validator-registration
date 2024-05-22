@@ -1,9 +1,9 @@
 import fs from "fs";
 import loadWeb3 from "web3";
 import { decrypt, Keystore } from "@chainsafe/bls-keystore";
-import loadBls from "bls-signatures";
+import bls from "@chainsafe/bls";
 
-const bls = await loadBls();
+const dst = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 const web3 = new loadWeb3(process.env.EL_ENDPOINT);
 
 async function loadKeystore(keystorePath, password) {
@@ -11,7 +11,7 @@ async function loadKeystore(keystorePath, password) {
 	const keystore = Keystore.fromObject(JSON.parse(keystoreRaw));
 	const pk = '0x' + keystore.pubkey;
 	const skBytes = await decrypt(keystore, password);
-	const sk = new bls.PrivateKey.from_bytes(skBytes, false);
+	const sk = bls.SecretKey.fromBytes(skBytes);
 	return [sk, pk];
 }
 
@@ -39,22 +39,23 @@ function uint64ToBytesBigEndian(x) {
 	return bytes;
 }
 
-function computeValidatorRegistryMessagePrefix(validatorIndex, nonce) {
-	let bytes = [parseInt(process.env.VALIDATOR_REGISTRY_VERSION)]; // validator registry version
-	bytes = bytes.concat(uint64ToBytesBigEndian(process.env.CHAIN_ID)); // chain id
-	bytes = bytes.concat(Array.from(web3.utils.hexToBytes(process.env.VALIDATOR_REGISTRY_ADDRESS))); // validator registry address
+function computeValidatorRegistryMessagePrefix(validatorIndex, nonce, chainId, validatorRegistryAddress, version) {
+	let bytes = [parseInt(version)]; // validator registry version
+	console.log(bytes);
+	bytes = bytes.concat(uint64ToBytesBigEndian(chainId)); // chain id
+	bytes = bytes.concat(Array.from(web3.utils.hexToBytes(validatorRegistryAddress))); // validator registry address
 	bytes = bytes.concat(uint64ToBytesBigEndian(validatorIndex)); // validator index
 	bytes = bytes.concat(uint64ToBytesBigEndian(nonce)); // nonce
 	console.log(bytes);
 	return bytes;
 }
 
-function computeRegistrationMessage(validatorIndex, nonce) {
-	return computeValidatorRegistryMessagePrefix(validatorIndex, nonce).concat([1]);
+function computeRegistrationMessage(validatorIndex, nonce, chainId, validatorRegistryAddress, version) {
+	return computeValidatorRegistryMessagePrefix(validatorIndex, nonce, chainId, validatorRegistryAddress, version).concat([1]);
 }
 
-// function computeDeregistrationMessage(validatorIndex, nonce) {
-// 	return computeValidatorRegistryMessagePrefix(validatorIndex, nonce).concat([0]);
+// function computeDeregistrationMessage(validatorIndex, nonce,chainId, validatorRegistryAddress, version) {
+// 	return computeValidatorRegistryMessagePrefix(validatorIndex, nonce, chainId, validatorRegistryAddress, version).concat([0]);
 // }
 
 const validators = await getValidators(process.env.CL_ENDPOINT);
@@ -79,11 +80,11 @@ for (const [sk, pk] of keystores) {
 	const validatorIndex = getValidatorIndex(pk, validators);
 	console.log('Generating registration for validator ' + validatorIndex);
 
-	const message = computeRegistrationMessage(validatorIndex, process.env.NONCE);
+	const message = computeRegistrationMessage(validatorIndex, process.env.NONCE, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, process.env.VALIDATOR_REGISTRY_VERSION);
 	const messageHex = web3.utils.bytesToHex(message);
 	const messageHash = web3.utils.hexToBytes(web3.utils.sha3(new Uint8Array(message)));
-	const sig = bls.AugSchemeMPL.sign(sk, messageHash);
-	const sigHex = bls.Util.hex_str(sig.serialize());
+
+	const sigHex = sk.sign(messageHash, dst).toHex();
 
 	console.log(validatorIndex + " : (" + messageHex + ", " + sigHex + ")");
 	res[validatorIndex] = {
