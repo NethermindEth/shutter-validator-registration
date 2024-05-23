@@ -41,7 +41,6 @@ function uint64ToBytesBigEndian(x) {
 
 function computeValidatorRegistryMessagePrefix(validatorIndex, nonce, chainId, validatorRegistryAddress, version) {
 	let bytes = [parseInt(version)]; // validator registry version
-	console.log(bytes);
 	bytes = bytes.concat(uint64ToBytesBigEndian(chainId)); // chain id
 	bytes = bytes.concat(Array.from(web3.utils.hexToBytes(validatorRegistryAddress))); // validator registry address
 	bytes = bytes.concat(uint64ToBytesBigEndian(validatorIndex)); // validator index
