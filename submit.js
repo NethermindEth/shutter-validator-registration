@@ -14,29 +14,29 @@ const web3 = new loadWeb3(provider);
 const accounts = await web3.eth.getAccounts();
 console.log(accounts);
 
-const registrationMessages = JSON.parse(fs.readFileSync('validatorRegistrations.json'));
+const signedRegistrations = JSON.parse(fs.readFileSync('signedRegistrations.json'));
 
-for (const validatorIndex in registrationMessages) {
-	const registrationMessage = registrationMessages[validatorIndex];
-	console.log(validatorIndex + " : (" + registrationMessage.message + ", " + registrationMessage.signature + ")");
+for (const validatorIndex in signedRegistrations) {
+	const signedRegistration = signedRegistrations[validatorIndex];
+	console.log(validatorIndex + " : (" + signedRegistration.message + ", " + signedRegistration.signature + ")");
 	const data = web3.eth.abi.encodeFunctionCall({
-	    "inputs": [
-	      {
-		"name": "message",
-		"type": "bytes",
-		"internalType": "Uint8Array"
-	      },
-	      {
-		"name": "signature",
-		"type": "bytes",
-		"internalType": "Uint8Array"
-	      }
-	    ],
+		"inputs": [
+			{
+				"name": "message",
+				"type": "bytes",
+				"internalType": "Uint8Array"
+			},
+			{
+				"name": "signature",
+				"type": "bytes",
+				"internalType": "Uint8Array"
+			}
+		],
 	    "name": "update",
 	    "type": "function"
 	}, [
-		web3.utils.hexToBytes(registrationMessage.message),
-		web3.utils.hexToBytes(registrationMessage.signature)
+		web3.utils.hexToBytes(signedRegistration.message),
+		web3.utils.hexToBytes(signedRegistration.signature)
 	]);
 
 	// send transaction

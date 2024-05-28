@@ -74,7 +74,8 @@ for (const filename of keystoreFilepaths) {
 
 console.log('Loaded all keystores...');
 
-let res = {};
+let validatorInfo = {}
+let signedRegistrations = {};
 for (const [sk, pk] of keystores) {
 	const validatorIndex = getValidatorIndex(pk, validators);
 	console.log('Generating registration for validator ' + validatorIndex);
@@ -86,10 +87,12 @@ for (const [sk, pk] of keystores) {
 	const sigHex = sk.sign(messageHash, dst).toHex();
 
 	console.log(validatorIndex + " : (" + messageHex + ", " + sigHex + ")");
-	res[validatorIndex] = {
+	validatorInfo[validatorIndex] = pk;
+	signedRegistrations[validatorIndex] = {
 		'message': messageHex,
 		'signature': sigHex
 	};
 }
 
-fs.writeFileSync('validatorRegistrations.json', JSON.stringify(res));
+fs.writeFileSync('validatorInfo.json', JSON.stringify(validatorInfo));
+fs.writeFileSync('signedRegistrations.json', JSON.stringify(signedRegistrations));

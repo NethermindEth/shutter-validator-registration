@@ -1,5 +1,5 @@
-validatorRegistrationInfo.json
-validatorRegistrations.json
+validatorInfo.json
+signedRegistrations.json
 
 # Logs
 logs

@@ -17,5 +17,6 @@ VALIDATOR_REGISTRY_ADDRESS=0x06BfddbEbe11f7eE8a39Fc7DC24498dE85C8afca
 NONCE = 0
 ```
 - Run the following command to generate the registration signatures: `node --env-file=.env sign.js`
+- The files `signedRegistrations.json` and `validatorInfo.json` will be generated.
 - Run the following command to submit the signatures: `node --env-file=.env submit.js`
-
+- When runnning the Nethermind client, pass in the path of the `validatorInfo.json` file with the following flag: `--Aura.ShutterValidatorInfoFile=...`
