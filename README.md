@@ -1,6 +1,6 @@
 # Shutter Validator Registration Scripts
 
-- Set up your execution client from the [Nethermind Shutter branch](https://github.com/NethermindEth/nethermind/tree/da931d84f900e93883134d7073e871434982ac6a), ensuring that all submodules are checked out
+- Set up your execution client from the [Nethermind Shutter branch](https://github.com/NethermindEth/nethermind/tree/feature/gnosis-shutter-release)
 - Generate your validator signing keys keystore file with the [generator tool](https://github.com/gnosischain/validator-data-generator/tree/master)
 - Create a burner address that will be used to submit the registrations
 - Create a .env file, following the following format:
@@ -19,4 +19,4 @@ NONCE = 0
 - Run the following command to generate the registration signatures: `node --env-file=.env sign.js`
 - The files `signedRegistrations.json` and `validatorInfo.json` will be generated.
 - Run the following command to submit the signatures: `node --env-file=.env submit.js`
-- When runnning the Nethermind client, pass in the path of the `validatorInfo.json` file with the following flag: `--Aura.ShutterValidatorInfoFile=...`
+- When runnning the Nethermind client, pass in the path of the `validatorInfo.json` file with the following flag: `--Shutter.ValidatorInfoFile=...`
