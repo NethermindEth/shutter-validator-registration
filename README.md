@@ -1,6 +1,6 @@
 # Shutter Validator Registration Scripts
 
-- Set up your execution client from the [Nethermind Shutter branch](https://github.com/NethermindEth/nethermind/tree/feature/gnosis-shutter-release) or use the [docker image](https://hub.docker.com/layers/nethermindeth/nethermind/nethermind_shutter/images/sha256-cc9ee8547683b35ce2d25da5c168bcc896322ed14e3da907cedaae72d134c9c9?context=explore) by running this command: `docker pull nethermindeth/nethermind:nethermind_shutter`
+- Set up your execution client from the [Nethermind Shutter branch](https://github.com/NethermindEth/nethermind/tree/feature/gnosis-shutter-release) or use the [docker image](https://hub.docker.com/layers/nethermindeth/nethermind/nethermind_shutter/images/sha256-16c4a71266467c8c181311c08f180e2e71da9467e6bbca04888d615295d44a70?context=explore) by running this command: `docker pull nethermindeth/nethermind:nethermind_shutter`
 - Generate your validator signing keys keystore file with the [generator tool](https://github.com/gnosischain/validator-data-generator/tree/master)
 - Create a burner address that will be used to submit the registrations
 - Create a .env file, following the following format:
