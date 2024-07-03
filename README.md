@@ -19,4 +19,4 @@ NONCE = 0
 - Run the following command to generate the registration signatures: `node --env-file=.env sign.js`
 - The files `signedRegistrations.json` and `validatorInfo.json` will be generated.
 - Run the following command to submit the signatures: `node --env-file=.env submit.js`
-- When runnning the Nethermind client, pass in the path of the `validatorInfo.json` file with the following flag: `--Shutter.ValidatorInfoFile=...`
+- Run the Nethermind client with the following arguments: `--Shutter.Enabled=true --Shutter.ValidatorInfoFile=[path to validatorInfo.json]`
