@@ -44,7 +44,7 @@ for (const validatorIndex in signedRegistrations) {
 		from: process.env.WALLET_ADDRESS,
 		to: process.env.VALIDATOR_REGISTRY_ADDRESS,
 		data: data,
-		chain: 'chiado',
+		chain: process.env.CHAIN,
 	});
 
 	console.log(receipt);
