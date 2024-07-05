@@ -16,10 +16,11 @@ CHAIN_ID=
 VALIDATOR_REGISTRY_VERSION=0
 VALIDATOR_REGISTRY_ADDRESS=0x06BfddbEbe11f7eE8a39Fc7DC24498dE85C8afca
 NONCE = 0
+SUBMISSIONS_PER_SEC = 1
 ```
 - Use node v20.11.1
 - Run the following command to generate the registration signatures: `node --env-file=.env sign.js`
 - The files `signedRegistrations.json` and `validatorInfo.json` will be generated.
 - Run the following command to submit the signatures: `node --env-file=.env submit.js`
-- If the script crashes then restart it from the validator index (x) that failed to submit `node --env-file=.env submit.js x`
+- To run the submission only for certain indices you can pass in a start index (inclusive) and an end index (non-inclusive) `node --env-file=.env submit.js [start] [end]` this can be used to parallelise submissions across multiple EL endpoints
 - Run the Nethermind client with the following arguments: `--Shutter.Enabled=true --Shutter.ValidatorInfoFile=[path to validatorInfo.json]`

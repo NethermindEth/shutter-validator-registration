@@ -16,13 +16,18 @@ console.log(accounts);
 
 const signedRegistrations = JSON.parse(fs.readFileSync('signedRegistrations.json'));
 var startIndex = 0;
+var endIndex = Number.MAX_VALUE;
 if (process.argv.length > 2)
 {
 	startIndex = parseInt(process.argv[2]);
 }
+if (process.argv.length > 3)
+{
+	startIndex = parseInt(process.argv[3]);
+}
 
 for (const validatorIndex in signedRegistrations) {
-	if (validatorIndex < startIndex)
+	if (validatorIndex < startIndex || validatorIndex >= endIndex)
 	{
 		continue;
 	}
@@ -50,14 +55,29 @@ for (const validatorIndex in signedRegistrations) {
 	]);
 
 	// send transaction
-	const receipt = await web3.eth.sendTransaction({
-		from: process.env.WALLET_ADDRESS,
-		to: process.env.VALIDATOR_REGISTRY_ADDRESS,
-		data: data,
-		chain: process.env.CHAIN,
-	});
+	var send = async () => {
+		await web3.eth.sendTransaction({
+			from: process.env.WALLET_ADDRESS,
+			to: process.env.VALIDATOR_REGISTRY_ADDRESS,
+			data: data,
+			chain: process.env.CHAIN,
+		})
+		.on('receipt', (receipt) => {
+			console.log("submitted " + validatorIndex + " in " + receipt.transactionHash)
+			return;
+		})
+		.on('error', () => {
+			console.log("error submitting " + validatorIndex + ", retrying...")
+			send();
+		})
+		.catch(() => {
+			console.log("error submitting " + validatorIndex + ", retrying...")
+			send();
+		})
+	}
 
-	console.log(receipt);
+	send();
+	await new Promise(resolve => setTimeout(resolve, 1000 / process.env.SUBMISSIONS_PER_SEC));
 }
 
 provider.engine.stop();
