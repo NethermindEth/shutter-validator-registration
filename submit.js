@@ -15,8 +15,18 @@ const accounts = await web3.eth.getAccounts();
 console.log(accounts);
 
 const signedRegistrations = JSON.parse(fs.readFileSync('signedRegistrations.json'));
+var startIndex = 0;
+if (process.argv.length > 2)
+{
+	startIndex = parseInt(process.argv[2]);
+}
 
 for (const validatorIndex in signedRegistrations) {
+	if (validatorIndex < startIndex)
+	{
+		continue;
+	}
+
 	const signedRegistration = signedRegistrations[validatorIndex];
 	console.log(validatorIndex + " : (" + signedRegistration.message + ", " + signedRegistration.signature + ")");
 	const data = web3.eth.abi.encodeFunctionCall({
