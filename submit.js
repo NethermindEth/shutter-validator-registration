@@ -23,13 +23,19 @@ if (process.argv.length > 2)
 }
 if (process.argv.length > 3)
 {
-	startIndex = parseInt(process.argv[3]);
+	endIndex = parseInt(process.argv[3]);
 }
 
 for (const validatorIndex in signedRegistrations) {
-	if (validatorIndex < startIndex || validatorIndex >= endIndex)
+	if (validatorIndex < startIndex)
 	{
+		console.log("Not in the range yet, skipping index", validatorIndex)
 		continue;
+	}
+
+	if (validatorIndex >= endIndex) {
+		console.log("Out of range, stopping", validatorIndex)
+		break;
 	}
 
 	const signedRegistration = signedRegistrations[validatorIndex];
@@ -66,13 +72,21 @@ for (const validatorIndex in signedRegistrations) {
 			console.log("submitted " + validatorIndex + " in " + receipt.transactionHash)
 			return;
 		})
-		.on('error', () => {
+		.on('error', (e) => {
 			console.log("error submitting " + validatorIndex + ", retrying...")
-			send();
+			console.error(e)
+			send()
 		})
-		.catch(() => {
-			console.log("error submitting " + validatorIndex + ", retrying...")
-			send();
+		.catch((e) => {
+			if (!!e.error) {
+				if (e.error.message === "AlreadyKnown" || e.error.message === "ReplacementNotAllowed") {
+					console.log("error submitting " + validatorIndex + ", " + e.error.message)
+				}
+			} else {
+				console.log("error submitting " + validatorIndex + ", retrying...")
+				console.error(e)
+				send()
+			}
 		})
 	}
 
