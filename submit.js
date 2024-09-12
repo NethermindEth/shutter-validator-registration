@@ -23,11 +23,11 @@ if (process.argv.length > 2)
 }
 if (process.argv.length > 3)
 {
-	startIndex = parseInt(process.argv[3]);
+	endIndex = parseInt(process.argv[3]);
 }
 
 for (const validatorIndex in signedRegistrations) {
-	if (validatorIndex < startIndex || validatorIndex >= endIndex)
+	if (validatorIndex < startIndex || validatorIndex > endIndex)
 	{
 		continue;
 	}
@@ -62,18 +62,11 @@ for (const validatorIndex in signedRegistrations) {
 			data: data,
 			chain: process.env.CHAIN,
 		})
-		.on('receipt', (receipt) => {
-			console.log("submitted " + validatorIndex + " in " + receipt.transactionHash)
+		.then((receipt) => {
+			console.log("submitted " + validatorIndex + " in " + receipt.transactionHash);
 			return;
 		})
-		.on('error', () => {
-			console.log("error submitting " + validatorIndex + ", retrying...")
-			send();
-		})
-		.catch(() => {
-			console.log("error submitting " + validatorIndex + ", retrying...")
-			send();
-		})
+		.catch(console.error);
 	}
 
 	send();

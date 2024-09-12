@@ -53,9 +53,21 @@ function computeRegistrationMessage(validatorIndex, nonce, chainId, validatorReg
 	return computeValidatorRegistryMessagePrefix(validatorIndex, nonce, chainId, validatorRegistryAddress, version).concat([1]);
 }
 
-// function computeDeregistrationMessage(validatorIndex, nonce,chainId, validatorRegistryAddress, version) {
-// 	return computeValidatorRegistryMessagePrefix(validatorIndex, nonce, chainId, validatorRegistryAddress, version).concat([0]);
-// }
+function computeDeregistrationMessage(validatorIndex, nonce, chainId, validatorRegistryAddress, version) {
+	return computeValidatorRegistryMessagePrefix(validatorIndex, nonce, chainId, validatorRegistryAddress, version).concat([0]);
+}
+
+let nonce = 0;
+if (process.argv.length > 2)
+{
+	nonce = parseInt(process.argv[2]);
+}
+
+let register = true;
+if (process.argv.length > 3 && process.argv[3] == "--deregister")
+{
+	register = false;
+}
 
 const validators = await getValidators(process.env.CL_ENDPOINT);
 
@@ -78,9 +90,11 @@ let validatorInfo = {}
 let signedRegistrations = {};
 for (const [sk, pk] of keystores) {
 	const validatorIndex = getValidatorIndex(pk, validators);
-	console.log('Generating registration for validator ' + validatorIndex);
+	console.log('Generating ' + (register ? 'registration' : 'deregistration') + ' for validator ' + validatorIndex);
 
-	const message = computeRegistrationMessage(validatorIndex, process.env.NONCE, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, process.env.VALIDATOR_REGISTRY_VERSION);
+	const message = register ?
+		  computeRegistrationMessage(validatorIndex, nonce, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, process.env.VALIDATOR_REGISTRY_VERSION)
+		: computeDeregistrationMessage(validatorIndex, nonce, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, process.env.VALIDATOR_REGISTRY_VERSION);
 	const messageHex = web3.utils.bytesToHex(message);
 	const messageHash = web3.utils.hexToBytes(web3.utils.sha3(new Uint8Array(message)));
 
