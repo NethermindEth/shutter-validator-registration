@@ -5,6 +5,7 @@ import bls from "@chainsafe/bls";
 
 const dst = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 const web3 = new loadWeb3(process.env.EL_ENDPOINT);
+const validatorRegistryVersion = 0;
 
 async function loadKeystore(keystorePath, password) {
 	const keystoreRaw = fs.readFileSync(keystorePath).toString();
@@ -93,8 +94,8 @@ for (const [sk, pk] of keystores) {
 	console.log('Generating ' + (register ? 'registration' : 'deregistration') + ' for validator ' + validatorIndex);
 
 	const message = register ?
-		  computeRegistrationMessage(validatorIndex, nonce, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, process.env.VALIDATOR_REGISTRY_VERSION)
-		: computeDeregistrationMessage(validatorIndex, nonce, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, process.env.VALIDATOR_REGISTRY_VERSION);
+		  computeRegistrationMessage(validatorIndex, nonce, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, validatorRegistryVersion)
+		: computeDeregistrationMessage(validatorIndex, nonce, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, validatorRegistryVersion);
 	const messageHex = web3.utils.bytesToHex(message);
 	const messageHash = web3.utils.hexToBytes(web3.utils.sha3(new Uint8Array(message)));
 
