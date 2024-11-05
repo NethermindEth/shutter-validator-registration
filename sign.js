@@ -2,10 +2,11 @@ import fs from "fs";
 import loadWeb3 from "web3";
 import { decrypt, Keystore } from "@chainsafe/bls-keystore";
 import bls from "@chainsafe/bls";
+import minimist from "minimist";
 
 const dst = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 const web3 = new loadWeb3(process.env.EL_ENDPOINT);
-const validatorRegistryVersion = 0;
+const validatorRegistryVersion = 1;
 
 async function loadKeystore(keystorePath, password) {
 	const keystoreRaw = fs.readFileSync(keystorePath).toString();
@@ -26,46 +27,57 @@ async function getValidators(beaconEndpoint) {
 function getValidatorIndex(pubkey, validators) {
 	for (let validator of validators) {
 		if (pubkey === validator.validator.pubkey) {
-			return validator.index;
+			return parseInt(validator.index);
 		}
 	}
 }
 
-function uint64ToBytesBigEndian(x) {
+function uintToBytesBigEndian(x, b) {
 	let bytes = []
-	for (let i = 0; i < 8; i++) {
+	for (let i = 0; i < b; i++) {
 		bytes.unshift(x & 255);
 		x >>= 8;
 	}
 	return bytes;
 }
+const uint64ToBytesBigEndian = (x) => uintToBytesBigEndian(x, 8);
+const uint32ToBytesBigEndian = (x) => uintToBytesBigEndian(x, 4);
 
-function computeValidatorRegistryMessagePrefix(validatorIndex, nonce, chainId, validatorRegistryAddress, version) {
-	let bytes = [parseInt(version)]; // validator registry version
-	bytes = bytes.concat(uint64ToBytesBigEndian(chainId)); // chain id
-	bytes = bytes.concat(Array.from(web3.utils.hexToBytes(validatorRegistryAddress))); // validator registry address
-	bytes = bytes.concat(uint64ToBytesBigEndian(validatorIndex)); // validator index
-	bytes = bytes.concat(uint64ToBytesBigEndian(nonce)); // nonce
-	console.log(bytes);
+function computeUpdateMessage(startIndex, count, nonce, chainId, validatorRegistryAddress, version, register) {
+	let bytes = [parseInt(version)];
+	bytes = bytes.concat(uint64ToBytesBigEndian(chainId));
+	bytes = bytes.concat(Array.from(web3.utils.hexToBytes(validatorRegistryAddress)));
+	bytes = bytes.concat(uint64ToBytesBigEndian(startIndex));
+	bytes = bytes.concat(uint32ToBytesBigEndian(count));
+	bytes = bytes.concat(uint32ToBytesBigEndian(nonce)); 
+	bytes = bytes.concat(register ? [1] : [0]); 
 	return bytes;
 }
 
-function computeRegistrationMessage(validatorIndex, nonce, chainId, validatorRegistryAddress, version) {
-	return computeValidatorRegistryMessagePrefix(validatorIndex, nonce, chainId, validatorRegistryAddress, version).concat([1]);
+const argv = minimist(process.argv.slice(2));
+
+if (argv._.length == 0)
+{
+	console.error('Must pass start validator index.');
+	process.exit(1);
 }
 
-function computeDeregistrationMessage(validatorIndex, nonce, chainId, validatorRegistryAddress, version) {
-	return computeValidatorRegistryMessagePrefix(validatorIndex, nonce, chainId, validatorRegistryAddress, version).concat([0]);
+let startIndex = parseInt(argv._[0]);
+let endIndex = startIndex + 1;
+
+if (argv._.length > 1)
+{
+	endIndex = parseInt(argv._[1]) + 1;
 }
 
 let nonce = 0;
-if (process.argv.length > 2)
+if ('nonce' in argv)
 {
-	nonce = parseInt(process.argv[2]);
+	nonce = parseInt(argv['nonce']);
 }
 
 let register = true;
-if (process.argv.length > 3 && process.argv[3] == "--deregister")
+if ('--deregister' in argv)
 {
 	register = false;
 }
@@ -74,40 +86,59 @@ const validators = await getValidators(process.env.CL_ENDPOINT);
 
 console.log('Downloaded validator info...');
 
-let keystores = []
+let validatorInfo = {}
+let validatorSecretKeys = {}
+
 const keystoreFilepaths = fs.readdirSync(process.env.KEYSTORE_DIR);
 for (const filename of keystoreFilepaths) {
 	if (filename.startsWith('keystore')) {
 		const keystorePath = process.env.KEYSTORE_DIR + filename;
 		const keystore = await loadKeystore(keystorePath, process.env.KEYSTORE_PASSWORD)
+		const [sk, pk] = keystore;
+		const validatorIndex = getValidatorIndex(pk, validators);
+
 		console.log('Loaded keystore ' + filename);
-		keystores.push(keystore);
+		console.log(validatorIndex + ': ' + pk);
+		validatorSecretKeys[validatorIndex] = sk;
+		validatorInfo[validatorIndex] = pk;
 	}
 }
 
-console.log('Loaded all keystores...');
-
-let validatorInfo = {}
-let signedRegistrations = {};
-for (const [sk, pk] of keystores) {
-	const validatorIndex = getValidatorIndex(pk, validators);
-	console.log('Generating ' + (register ? 'registration' : 'deregistration') + ' for validator ' + validatorIndex);
-
-	const message = register ?
-		  computeRegistrationMessage(validatorIndex, nonce, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, validatorRegistryVersion)
-		: computeDeregistrationMessage(validatorIndex, nonce, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, validatorRegistryVersion);
-	const messageHex = web3.utils.bytesToHex(message);
-	const messageHash = web3.utils.hexToBytes(web3.utils.sha3(new Uint8Array(message)));
-
-	const sigHex = sk.sign(messageHash, dst).toHex();
-
-	console.log(validatorIndex + " : (" + messageHex + ", " + sigHex + ")");
-	validatorInfo[validatorIndex] = pk;
-	signedRegistrations[validatorIndex] = {
-		'message': messageHex,
-		'signature': sigHex
-	};
+let missing = false;
+for (let i = startIndex; i < endIndex; i++)
+{
+	if (!(i in validatorSecretKeys))
+	{
+		console.error('Missing keystore for validator ' + i);
+		missing = true;
+	}
 }
 
+if (missing)
+{
+	process.exit(1);
+}
+
+console.log('Loaded all keystores for indices ' + startIndex + ' up to ' + (endIndex - 1) + '...');
+
+const count = endIndex - startIndex;
+const message = computeUpdateMessage(startIndex, count, nonce, process.env.CHAIN_ID, process.env.VALIDATOR_REGISTRY_ADDRESS, validatorRegistryVersion, register);
+let sigs = [];
+
+for (let i = startIndex; i < endIndex; i++) {
+	console.log('Generating signature for validator ' + i);
+
+	const messageHash = web3.utils.hexToBytes(web3.utils.sha3(new Uint8Array(message)));
+	const sig = validatorSecretKeys[i].sign(messageHash, dst);
+	sigs.push(sig);
+}
+
+console.log('Aggregating signatures...');
+const sig = bls.aggregateSignatures(sigs);
+
+const messageHex = web3.utils.bytesToHex(message);
+const sigHex = web3.utils.bytesToHex(sig);
+
+console.log("(" + messageHex + ", " + sigHex + ")");
 fs.writeFileSync('validatorInfo.json', JSON.stringify(validatorInfo));
-fs.writeFileSync('signedRegistrations.json', JSON.stringify(signedRegistrations));
+fs.writeFileSync('signedRegistrations.json', JSON.stringify({'message': messageHex, 'signature': sigHex}));
