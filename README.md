@@ -2,11 +2,7 @@
 
 - Use node v20.17.0 to run the scripts (recommended: install with [nvm](https://github.com/nvm-sh/nvm))
 - Generate your validator signing keys keystore file with the [generator tool](https://github.com/gnosischain/validator-data-generator/tree/master)
-<<<<<<< HEAD
-- Create a temporary burner wallet that will cover the gas fees to submit the registrations. Each submission uses 189,736 gas, or ~0.19¢ at a base fee of 10Gwei ([current base fee](https://gnosisscan.io/gastracker)).
-=======
 - Create a temporary burner wallet that will cover the gas fees to submit the registrations. A submission uses 189,736 gas, or ~0.19¢ at a base fee of 10Gwei ([current base fee](https://gnosisscan.io/gastracker)).
->>>>>>> 27223c7 (v1)
 - You will need EL and CL endpoints in order to run the scripts.
 - Create a .env file, following the following format:
 
