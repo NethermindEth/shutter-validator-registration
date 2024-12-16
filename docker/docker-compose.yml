@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  script:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.script
+    volumes:
+      - ./output:/app/output
+
+  dapp:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dapp
+    ports:
+      - "3000:3000"

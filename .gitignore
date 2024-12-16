@@ -1,6 +1,9 @@
 validatorInfo.json
 signedRegistrations.json
 
+# Ignore output directory for generated files
+output/
+
 # Logs
 logs
 *.log
@@ -77,6 +80,8 @@ web_modules/
 
 # dotenv environment variable files
 .env
+script/.env
+dapp/.env
 .env.development.local
 .env.test.local
 .env.production.local
@@ -131,3 +136,6 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Docker build artifacts
+docker-compose.override.yml

@@ -1,48 +1,250 @@
-# Shutter Validator Registration Scripts
+### **Validator Registration Workflow**
 
-- Use node v20.17.0 to run the scripts (recommended: install with [nvm](https://github.com/nvm-sh/nvm))
-- Generate your validator signing keys keystore file with the [generator tool](https://github.com/gnosischain/validator-data-generator/tree/master)
-- Create a temporary burner wallet that will cover the gas fees to submit the registrations. A submission uses 189,736 gas, or ~0.19¢ at a base fee of 10Gwei ([current base fee](https://gnosisscan.io/gastracker)).
-- You will need EL and CL endpoints in order to run the scripts.
-- Create a .env file, following the following format:
+This guide provides step-by-step instructions for generating validator registration signatures using an existing validator mnemonic or keystore files and submitting them to the Gnosis Chain using a DApp. It also includes an optional step for uploading registration files when the DApp is hosted on a separate machine.
 
-<details>
-<summary>Gnosis</summary>
+---
 
+## **Overview**
+
+The workflow consists of two main components:
+1. **Validator Script**:
+   - Uses an existing validator mnemonic or keystore files to create the `signedRegistrations.json` file required for registration.
+2. **Validator Registration DApp**:
+   - Uploads the `signedRegistrations.json` file.
+   - Submits the registration to the `VALIDATOR_REGISTRY_ADDRESS` smart contract.
+
+---
+
+## **1. Validator Script**
+
+### **Features**
+- Uses an existing BIP-39 mnemonic or pre-generated keystore files to generate registration signatures.
+- Creates the `signedRegistrations.json` file with validator registration data.
+- Preconfigured with Gnosis Chain endpoints and contract addresses.
+
+---
+
+### **Requirements**
+
+- Docker installed on your system.
+- Access to:
+  - An existing BIP-39 mnemonic **or** keystore files for your validator keys.
+  - The password for the keystore files.
+
+#### **Preconfigured `.env` File**
+The `script/.env.example` file is provided with preconfigured values. Copy it to create your own `.env` file.
+
+```bash
+cp script/.env.example script/.env
 ```
-EL_ENDPOINT=
-CL_ENDPOINT=
-KEYSTORE_DIR=
-KEYSTORE_PASSWORD=
-WALLET_SEED=[burner wallet seed phrase]
-WALLET_ADDRESS=[burner wallet seed address]
-CHAIN=gnosis
-CHAIN_ID=100
+
+#### **Example `.env` (script/.env.example)**
+```plaintext
+# Gnosis Chain Execution Layer (EL) RPC Endpoint
+EL_ENDPOINT=https://rpc.gnosis.gateway.fm
+
+# Gnosis Chain Consensus Layer (CL) RPC Endpoint
+CL_ENDPOINT=https://rpc-gbc.gnosischain.com
+
+# Validator Registry Contract Address
 VALIDATOR_REGISTRY_ADDRESS=0xefCC23E71f6bA9B22C4D28F7588141d44496A6D6
-```
-</details>
 
-<details>
-<summary>Chiado</summary>
+# Chain Configuration
+CHAIN_ID=100
 
-```
-EL_ENDPOINT=
-CL_ENDPOINT=
-KEYSTORE_DIR=
-KEYSTORE_PASSWORD=
-WALLET_SEED=[burner wallet seed phrase]
-WALLET_ADDRESS=[burner wallet seed address]
-CHAIN=chiado
-CHAIN_ID=10200
-VALIDATOR_REGISTRY_ADDRESS=0x06BfddbEbe11f7eE8a39Fc7DC24498dE85C8afca
+# Validator Keystore Password
+KEYSTORE_PASSWORD=your-keystore-password
+
+# Path to Keystore Files or Mnemonic
+KEYSTORE_DIR=/path/to/validator_keys/    # If using keystore files
+MNEMONIC="your twelve word mnemonic here" # If using a mnemonic
 ```
 
-</details>
+---
 
-- Generate the registration signatures for a single validator: `node --env-file=.env sign.js index`
-- Generate the registration signatures for multiple consecutive validator keys (end index inclusive): `node --env-file=.env sign.js startIndex endIndex`
-- The files `signedRegistrations.json` and `validatorInfo.json` will be generated. If you run the script multiple times you will need to combine all of the `validatorInfo.json` into one file.
-- Submit the signatures to register your validators: `node --env-file=.env submit.js`
-- To deregister your validators, increment the nonce to the correct value (here we assume nonce=1) and generate the signatures with `node --env-file=.env sign.js --nonce 1 --deregister`
-- Run the Nethermind client with the following arguments: `--Shutter.Enabled=true --Shutter.ValidatorInfoFile=[path to validatorInfo.json]`
-- If any of your validators were not registered there will be an error message on startup
+### **How to Run**
+
+#### **Step 1: Build the Docker Image**
+Build the validator script Docker image:
+```bash
+docker build -t validator-script -f docker/Dockerfile.script .
+```
+
+#### **Step 2: Run the Script**
+
+Run the Docker container to generate registration signatures:
+```bash
+# Using existing keystore files
+docker run --rm -v $(pwd)/output:/app/output -v $(pwd)/validator_keys:/app/validator_keys validator-script
+
+# Using a mnemonic
+docker run --rm -v $(pwd)/output:/app/output validator-script --use-mnemonic
+```
+
+---
+
+### **Outputs**
+
+1. **`signedRegistrations.json`**:
+   - Contains the `message` and `signature` required for registration.
+
+2. **`validatorInfo.json`**:
+   - Contains metadata for configuring your validator node.
+
+---
+
+### **Optional Step: Upload Registration Files**
+
+If you are generating registration files on a remote server (e.g., via SSH) and need to upload them to a machine running the DApp, follow these steps:
+
+#### **Using SCP (Secure Copy)**
+1. On your local machine, run:
+   ```bash
+   scp -r user@server:/path/to/output/signedRegistrations.json /local/path/
+   ```
+   - Replace `user` with your SSH username.
+   - Replace `/path/to/output/` with the directory where the registration files are saved on the server.
+   - Replace `/local/path/` with the directory on your local machine where the file should be copied.
+
+#### **Using SFTP**
+1. Open an SFTP session:
+   ```bash
+   sftp user@server
+   ```
+2. Navigate to the output directory:
+   ```bash
+   cd /path/to/output/
+   ```
+3. Download the file:
+   ```bash
+   get signedRegistrations.json
+   ```
+
+---
+
+## **2. Validator Registration DApp**
+
+### **Features**
+- Provides a simple interface for submitting `signedRegistrations.json`.
+- Integrates with Web3 wallets like MetaMask.
+- Displays transaction status and confirmation.
+
+---
+
+### **Requirements**
+
+#### **Preconfigured `.env` File**
+The `dapp/.env.example` file is provided with preconfigured values. Copy it to create your own `.env` file.
+
+```bash
+cp dapp/.env.example dapp/.env
+```
+
+#### **Example `.env` (dapp/.env.example)**
+```plaintext
+REACT_APP_EL_ENDPOINT=https://rpc.gnosis.gateway.fm
+REACT_APP_VALIDATOR_REGISTRY_ADDRESS=0xefCC23E71f6bA9B22C4D28F7588141d44496A6D6
+```
+
+---
+
+### **How to Run**
+
+#### **Option 1: Local Development**
+
+1. Navigate to the `dapp/` directory:
+   ```bash
+   cd dapp/
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm start
+   ```
+
+4. Open the DApp in your browser:
+   ```plaintext
+   http://localhost:3000
+   ```
+
+---
+
+#### **Option 2: Run Using Docker**
+
+1. Build the Docker image:
+   ```bash
+   docker build -t validator-dapp -f docker/Dockerfile.dapp .
+   ```
+
+2. Run the Docker container:
+   ```bash
+   docker run --rm -p 3000:3000 validator-dapp
+   ```
+
+3. Open the DApp in your browser:
+   ```plaintext
+   http://localhost:3000
+   ```
+
+---
+
+### **Using the DApp**
+
+1. **Upload `signedRegistrations.json`**:
+   - Use the file upload button to select the `signedRegistrations.json` file generated by the script.
+
+2. **Connect Wallet**:
+   - Connect your Web3 wallet (e.g., MetaMask).
+   - Ensure the wallet has sufficient funds to cover gas fees.
+
+3. **Submit Signatures**:
+   - Click the "Submit" button to send the registration data.
+   - Wait for the transaction confirmation.
+
+4. **View Transaction**:
+   - The DApp will display the transaction hash.
+   - You can view it on [GnosisScan](https://gnosisscan.io/).
+
+---
+
+## **3. Validator Node Setup**
+
+Use the `validatorInfo.json` file generated by the script to configure your validator node.
+
+#### **Example Command for Nethermind**
+```bash
+nethermind --Shutter.Enabled=true --Shutter.ValidatorInfoFile=/path/to/output/validatorInfo.json
+```
+
+---
+
+## **4. Directory Structure**
+
+```
+project-root/
+├── output/
+│   ├── signedRegistrations.json   # Registration signatures
+│   ├── validatorInfo.json         # Validator configuration
+├── dapp/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── App.js
+│   │   ├── index.js
+│   ├── .env                       # DApp configuration (ignored in Git)
+│   ├── .env.example               # Example DApp configuration
+│   ├── Dockerfile
+│   ├── package.json
+├── script/
+│   ├── validator_script.js        # Main validator script
+│   ├── .env                       # Script configuration (ignored in Git)
+│   ├── .env.example               # Example script configuration
+├── docker/
+│   ├── Dockerfile.script          # Dockerfile for the script
+│   ├── Dockerfile.dapp            # Dockerfile for the DApp
+├── README.md                      # This documentation
